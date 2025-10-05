@@ -21,7 +21,7 @@ services:
         condition: service_healthy
     entrypoint: ["bash", "-lc"]
     command: >-
-      "ollama pull ${LLM_MODEL} && ollama pull ${EMBED_MODEL} && echo 'Models ready'"
+      set -euo pipefail; ollama pull ${LLM_MODEL} && ollama pull ${EMBED_MODEL} && echo 'Models ready'
     environment:
       - OLLAMA_HOST=ollama:11434
     volumes:
@@ -45,6 +45,8 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
       qdrant:
         condition: service_started
     ports:
@@ -59,6 +61,8 @@ services:
     depends_on:
       api:
         condition: service_started
+      ollama-init:
+        condition: service_completed_successfully
     ports:
       - "5173:5173"
     restart: unless-stopped

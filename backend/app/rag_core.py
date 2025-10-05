@@ -69,33 +69,42 @@ class RAGPipeline:
         return len(vector)
 
     async def embed_text(self, text: str) -> List[float]:
-        payload = {'model': self.settings.embed_model, 'input': text}
+        payload = {'model': self.settings.embed_model, 'prompt': text, 'input': text}
         url = f"{self.settings.ollama_host}/api/embeddings"
-        async with httpx.AsyncClient(timeout=self.settings.ollama_timeout) as client:
-            try:
-                response = await client.post(url, json=payload)
-                response.raise_for_status()
-            except httpx.HTTPStatusError as exc:
-                content_type = exc.response.headers.get('content-type', '')
-                detail = exc.response.json() if content_type.startswith('application/json') else exc.response.text
-                logger.error('Embedding request failed: %s', detail)
-                raise ValueError(f'Embedding request failed: {detail}') from exc
-            data = response.json()
+        max_attempts = 5
+        backoff = 1.0
 
-        embedding = data.get('embedding')
-        if embedding:
-            return embedding
+        for attempt in range(1, max_attempts + 1):
+            async with httpx.AsyncClient(timeout=self.settings.ollama_timeout) as client:
+                try:
+                    response = await client.post(url, json=payload)
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    content_type = exc.response.headers.get('content-type', '')
+                    detail = exc.response.json() if content_type.startswith('application/json') else exc.response.text
+                    logger.error('Embedding request failed: %s', detail)
+                    raise ValueError(f'Embedding request failed: {detail}') from exc
+                data = response.json()
 
-        if isinstance(data, dict):
-            if 'data' in data and data['data']:
-                candidate = data['data'][0].get('embedding')
-                if candidate:
-                    return candidate
-            if 'error' in data:
-                logger.error('Embedding error from Ollama: %s', data['error'])
-                raise ValueError(f'Embedding error from Ollama: {data["error"]}')
+            embedding = data.get('embedding') if isinstance(data, dict) else None
+            if embedding and len(embedding) > 0:
+                return embedding
 
-        logger.error('Unexpected embedding response: %s', data)
+            if isinstance(data, dict):
+                if 'data' in data and data['data']:
+                    candidate = data['data'][0].get('embedding')
+                    if candidate and len(candidate) > 0:
+                        return candidate
+                if 'error' in data:
+                    logger.error('Embedding error from Ollama: %s', data['error'])
+                    raise ValueError(f'Embedding error from Ollama: {data["error"]}')
+
+            logger.warning('Empty embedding response (attempt %s/%s): %s', attempt, max_attempts, data)
+            if attempt < max_attempts:
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, 8.0)
+
+        logger.error('Embedding service returned empty vectors after %s attempts', max_attempts)
         raise ValueError('Embedding response missing "embedding" field')
 
     async def upsert_chunks(self, chunks: List[DocumentChunk]) -> int:
@@ -258,4 +267,6 @@ class RAGPipeline:
         if not context_lines:
             return 'No supporting documents available.', sources
         return '\n'.join(context_lines), sources
+
+
 
