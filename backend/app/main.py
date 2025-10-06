@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 
 from .parsers import UnsupportedFileTypeError, extract_text
 from .rag_core import DocumentChunk, LLMGenerationError, RAGPipeline
@@ -13,7 +14,18 @@ from .settings import Settings, get_settings
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title='AI RAG API', version='1.0.0')
+API_DESCRIPTION = (
+    'JamAI retrieval-augmented generation API for uploading documents, retrieving context, and generating grounded responses with citations.'
+)
+
+app = FastAPI(
+    title='JamAI RAG API',
+    description=API_DESCRIPTION,
+    version='1.0.0',
+    openapi_url='/openapi.json',
+    docs_url=None,
+    redoc_url=None,
+)
 
 
 def _cors_list(origins: str) -> List[str]:
@@ -35,6 +47,23 @@ _pipeline = RAGPipeline(settings)
 
 def get_pipeline(_: Settings = Depends(get_settings)) -> RAGPipeline:
     return _pipeline
+
+
+@app.get('/swagger', include_in_schema=False)
+async def swagger_ui():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Swagger UI",
+        swagger_ui_parameters={
+            'displayRequestDuration': True,
+            'defaultModelsExpandDepth': 1,
+        },
+    )
+
+
+@app.get('/swagger/oauth2-redirect', include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
 
 
 @app.on_event('startup')

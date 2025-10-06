@@ -24,7 +24,8 @@ A retrieval-augmented generation (RAG) stack powered by FastAPI, Qdrant, Ollama,
 
 3. Access the services:
    - Web UI: http://localhost:5173
-   - API docs: http://localhost:8000/docs
+   - Swagger UI: http://localhost:8000/swagger
+   - OpenAPI schema: http://localhost:8000/openapi.json
    - Qdrant dashboard: http://localhost:6333
    - Ollama API: http://localhost:11434
 

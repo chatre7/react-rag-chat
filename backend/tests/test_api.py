@@ -99,3 +99,11 @@ def test_chat_returns_answer_and_sources(client):
     assert len(body['sources']) == 1
     assert body['sources'][0]['source'] == 'doc.txt'
     assert stub.retrieve_args == ('What is AI?', 3, 'acme', ['docs'])
+
+
+
+def test_swagger_ui_served(client):
+    http, _ = client
+    response = http.get('/swagger')
+    assert response.status_code == 200
+    assert 'Swagger UI' in response.text
