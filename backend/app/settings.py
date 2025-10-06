@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     llm_model: str = Field('llama3.1', env='LLM_MODEL')
     embed_model: str = Field('mxbai-embed-large', env='EMBED_MODEL')
     ollama_timeout: int = Field(120, env='OLLAMA_TIMEOUT')
+    chat_max_attempts: int = Field(3, env='CHAT_MAX_ATTEMPTS')
+    chat_retry_backoff: float = Field(2.0, env='CHAT_RETRY_BACKOFF')
 
     qdrant_url: str = Field('http://qdrant:6333', env='QDRANT_URL')
     qdrant_api_key: str = Field('', env='QDRANT_API_KEY')

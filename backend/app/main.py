@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from .parsers import UnsupportedFileTypeError, extract_text
-from .rag_core import DocumentChunk, RAGPipeline
+from .rag_core import DocumentChunk, LLMGenerationError, RAGPipeline
 from .schemas import ChatRequest, ChatResponse, DebugSearchResponse, IngestResponse, SourceChunk
 from .settings import Settings, get_settings
 
@@ -113,7 +113,11 @@ async def chat(
         tags=request.tags,
     )
     conversation = [msg.dict() for msg in request.conversation] if request.conversation else None
-    answer, sources = await pipeline.generate_answer(request.query, retrieved, conversation)
+    try:
+        answer, sources = await pipeline.generate_answer(request.query, retrieved, conversation)
+    except LLMGenerationError as exc:
+        logger.exception('Text generation failed')
+        raise HTTPException(status_code=504, detail=str(exc)) from exc
     source_models = [SourceChunk(**source) for source in sources]
     return ChatResponse(answer=answer or 'I do not have enough information to answer that yet.', sources=source_models)
 
