@@ -1,4 +1,6 @@
 from functools import lru_cache
+from pathlib import Path
+
 from pydantic import BaseSettings, Field
 
 
@@ -11,12 +13,12 @@ class Settings(BaseSettings):
     llm_model: str = Field('llama3.1', env='LLM_MODEL')
     embed_model: str = Field('mxbai-embed-large', env='EMBED_MODEL')
     ollama_timeout: int = Field(120, env='OLLAMA_TIMEOUT')
-    chat_max_attempts: int = Field(3, env='CHAT_MAX_ATTEMPTS')
-    chat_retry_backoff: float = Field(2.0, env='CHAT_RETRY_BACKOFF')
 
     qdrant_url: str = Field('http://qdrant:6333', env='QDRANT_URL')
     qdrant_api_key: str = Field('', env='QDRANT_API_KEY')
     collection_name: str = Field('rag_documents', env='QDRANT_COLLECTION')
+
+    data_dir: Path = Field(Path('data'), env='DATA_DIR')
 
     chunk_size: int = Field(800, env='CHUNK_SIZE')
     chunk_overlap: int = Field(100, env='CHUNK_OVERLAP')
@@ -24,7 +26,7 @@ class Settings(BaseSettings):
     max_context_chars: int = Field(4000, env='MAX_CONTEXT_CHARS')
 
     system_prompt: str = Field(
-        'You are AI, a calm assistant who answers using the provided context. '
+        'You are JamAI, a calm assistant who answers using the provided context. '
         'Decline when the answer is not in the context. Cite sources when possible.',
         env='SYSTEM_PROMPT',
     )
@@ -37,4 +39,6 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    return settings

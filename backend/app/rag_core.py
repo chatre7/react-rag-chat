@@ -8,21 +8,17 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.models import (
     Distance,
+    FieldCondition,
     Filter,
     MatchAny,
     MatchValue,
     PointStruct,
     VectorParams,
-    FieldCondition,
 )
 
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
-
-
-class LLMGenerationError(Exception):
-    """Raised when the LLM backend fails to produce a response."""
 
 
 @dataclass
@@ -172,6 +168,24 @@ class RAGPipeline:
             )
         return retrieved
 
+    async def count_segments(self, tenant_id: str) -> int:
+        await self.ensure_collection()
+        query_filter = self._build_filter(tenant_id, None)
+        try:
+            response = await asyncio.to_thread(
+                self.client.count,
+                collection_name=self.settings.collection_name,
+                count_filter=query_filter,
+                exact=True,
+            )
+        except UnexpectedResponse:
+            logger.warning('Collection %s missing during count; recreating', self.settings.collection_name)
+            self._collection_ready = False
+            return 0
+        if isinstance(response, dict):
+            return int(response.get('count', 0))
+        return int(getattr(response, 'count', 0))
+
     def split_text(self, text: str) -> List[str]:
         normalized = text.replace('\r\n', '\n').strip()
         if not normalized:
@@ -234,48 +248,10 @@ class RAGPipeline:
             'options': {'temperature': self.settings.temperature},
         }
         url = f"{self.settings.ollama_host}/api/chat"
-        max_attempts = max(1, self.settings.chat_max_attempts)
-        backoff = max(0.5, self.settings.chat_retry_backoff)
-        data: Optional[Dict[str, Any]] = None
-        last_error: Optional[Exception] = None
-
-        for attempt in range(1, max_attempts + 1):
-            try:
-                async with httpx.AsyncClient(timeout=self.settings.ollama_timeout) as client:
-                    response = await client.post(url, json=payload)
-                    response.raise_for_status()
-                    data = response.json()
-                break
-            except httpx.TimeoutException as exc:
-                logger.warning(
-                    'Ollama chat attempt %s/%s timed out after %s seconds',
-                    attempt,
-                    max_attempts,
-                    self.settings.ollama_timeout,
-                )
-                last_error = exc
-            except httpx.HTTPStatusError as exc:
-                content_type = exc.response.headers.get('content-type', '')
-                detail = exc.response.json() if content_type.startswith('application/json') else exc.response.text
-                logger.error('Ollama chat request failed: %s', detail)
-                raise LLMGenerationError('Language model returned an error.') from exc
-            except httpx.HTTPError as exc:
-                logger.warning(
-                    'HTTP error while contacting Ollama (attempt %s/%s): %s',
-                    attempt,
-                    max_attempts,
-                    exc,
-                )
-                last_error = exc
-
-            if attempt < max_attempts:
-                await asyncio.sleep(min(backoff, 30.0))
-                backoff = min(backoff * 2, 30.0)
-
-        if data is None:
-            if isinstance(last_error, httpx.TimeoutException):
-                raise LLMGenerationError('Timed out waiting for language model response.') from last_error
-            raise LLMGenerationError('Failed to contact language model service.') from last_error
+        async with httpx.AsyncClient(timeout=self.settings.ollama_timeout) as client:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            data = response.json()
         message = data.get('message', {})
         answer = message.get('content', '').strip()
         return answer, sources
@@ -309,6 +285,3 @@ class RAGPipeline:
         if not context_lines:
             return 'No supporting documents available.', sources
         return '\n'.join(context_lines), sources
-
-
-

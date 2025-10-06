@@ -1,73 +1,129 @@
 import logging
 import uuid
+from datetime import datetime
 from typing import List, Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 
 from .parsers import UnsupportedFileTypeError, extract_text
-from .rag_core import DocumentChunk, LLMGenerationError, RAGPipeline
-from .schemas import ChatRequest, ChatResponse, DebugSearchResponse, IngestResponse, SourceChunk
+from .rag_core import DocumentChunk, RAGPipeline
+from .schemas import (
+    ChatRequest,
+    ChatResponse,
+    DebugSearchResponse,
+    IngestResponse,
+    SourceChunk,
+    TenantCreate,
+    TenantListResponse,
+    TenantRead,
+    TenantSegmentsResponse,
+    TenantUpdate,
+)
 from .settings import Settings, get_settings
+from .tenant_store import TenantStore
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-API_DESCRIPTION = (
-    'JamAI retrieval-augmented generation API for uploading documents, retrieving context, and generating grounded responses with citations.'
-)
-
-app = FastAPI(
-    title='JamAI RAG API',
-    description=API_DESCRIPTION,
-    version='1.0.0',
-    openapi_url='/openapi.json',
-    docs_url=None,
-    redoc_url=None,
-)
-
-
-def _cors_list(origins: str) -> List[str]:
-    if origins == '*':
-        return ['*']
-    return [origin.strip() for origin in origins.split(',') if origin.strip()]
-
-
 settings = get_settings()
+
+app = FastAPI(title='JamAI RAG API', version='1.0.0')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_list(settings.cors_origins),
+    allow_origins=[settings.cors_origins] if settings.cors_origins != '*' else ['*'],
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
 _pipeline = RAGPipeline(settings)
+_tenant_store = TenantStore(settings.data_dir / 'tenants.json')
 
 
 def get_pipeline(_: Settings = Depends(get_settings)) -> RAGPipeline:
     return _pipeline
 
 
-@app.get('/swagger', include_in_schema=False)
-async def swagger_ui():
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=f"{app.title} - Swagger UI",
-        swagger_ui_parameters={
-            'displayRequestDuration': True,
-            'defaultModelsExpandDepth': 1,
-        },
-    )
+def get_tenant_store(_: Settings = Depends(get_settings)) -> TenantStore:
+    return _tenant_store
 
 
-@app.get('/swagger/oauth2-redirect', include_in_schema=False)
-async def swagger_ui_redirect():
-    return get_swagger_ui_oauth2_redirect_html()
+tenant_router = APIRouter(prefix='/tenants', tags=['tenants'])
+
+
+@tenant_router.get('', response_model=TenantListResponse)
+async def list_tenants(store: TenantStore = Depends(get_tenant_store)) -> TenantListResponse:
+    records = await store.list()
+    tenants = [TenantRead(**record) for record in records]
+    return TenantListResponse(tenants=tenants)
+
+
+@tenant_router.post('', response_model=TenantRead, status_code=201)
+async def create_tenant(payload: TenantCreate, store: TenantStore = Depends(get_tenant_store)) -> TenantRead:
+    now = datetime.utcnow()
+    record = {
+        **payload.dict(),
+        'created_at': now.isoformat() + 'Z',
+        'updated_at': now.isoformat() + 'Z',
+    }
+    try:
+        tenant = await store.create(record)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return tenant
+
+
+@tenant_router.get('/{tenant_id}', response_model=TenantRead)
+async def get_tenant(tenant_id: str, store: TenantStore = Depends(get_tenant_store)) -> TenantRead:
+    record = await store.get(tenant_id)
+    if not record:
+        raise HTTPException(status_code=404, detail='Tenant not found')
+    return TenantRead(**record)
+
+
+@tenant_router.put('/{tenant_id}', response_model=TenantRead)
+async def update_tenant(
+    tenant_id: str,
+    payload: TenantUpdate,
+    store: TenantStore = Depends(get_tenant_store),
+) -> TenantRead:
+    existing = await store.get(tenant_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail='Tenant not found')
+    updates = {k: v for k, v in payload.dict(exclude_unset=True).items()}
+    updates['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+    tenant = await store.update(tenant_id, updates)
+    if not tenant:
+        raise HTTPException(status_code=404, detail='Tenant not found')
+    return tenant
+
+
+@tenant_router.delete('/{tenant_id}', status_code=204)
+async def delete_tenant(tenant_id: str, store: TenantStore = Depends(get_tenant_store)) -> None:
+    removed = await store.delete(tenant_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail='Tenant not found')
+
+
+@tenant_router.get('/{tenant_id}/segments', response_model=TenantSegmentsResponse)
+async def count_segments(
+    tenant_id: str,
+    store: TenantStore = Depends(get_tenant_store),
+    pipeline: RAGPipeline = Depends(get_pipeline),
+) -> TenantSegmentsResponse:
+    if not await store.get(tenant_id):
+        raise HTTPException(status_code=404, detail='Tenant not found')
+    segments = await pipeline.count_segments(tenant_id)
+    return TenantSegmentsResponse(tenant_id=tenant_id, segments_indexed=segments)
+
+
+app.include_router(tenant_router)
 
 
 @app.on_event('startup')
 async def _startup() -> None:
+    await _tenant_store.initialise()
     await _pipeline.ensure_collection()
 
 
@@ -82,9 +138,13 @@ async def ingest_documents(
     tenant_id: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
     pipeline: RAGPipeline = Depends(get_pipeline),
+    store: TenantStore = Depends(get_tenant_store),
 ) -> IngestResponse:
     if not files:
         raise HTTPException(status_code=400, detail='No files uploaded')
+
+    if tenant_id and not await store.get(tenant_id):
+        raise HTTPException(status_code=400, detail='Tenant is not registered')
 
     tag_list = [tag.strip() for tag in tags.split(',')] if tags else []
     tag_list = [tag for tag in tag_list if tag]
@@ -133,7 +193,10 @@ async def ingest_documents(
 async def chat(
     request: ChatRequest,
     pipeline: RAGPipeline = Depends(get_pipeline),
+    store: TenantStore = Depends(get_tenant_store),
 ) -> ChatResponse:
+    if request.tenant_id and not await store.get(request.tenant_id):
+        raise HTTPException(status_code=400, detail='Tenant is not registered')
     top_k = request.top_k or settings.default_top_k
     retrieved = await pipeline.retrieve(
         query=request.query,
@@ -142,11 +205,7 @@ async def chat(
         tags=request.tags,
     )
     conversation = [msg.dict() for msg in request.conversation] if request.conversation else None
-    try:
-        answer, sources = await pipeline.generate_answer(request.query, retrieved, conversation)
-    except LLMGenerationError as exc:
-        logger.exception('Text generation failed')
-        raise HTTPException(status_code=504, detail=str(exc)) from exc
+    answer, sources = await pipeline.generate_answer(request.query, retrieved, conversation)
     source_models = [SourceChunk(**source) for source in sources]
     return ChatResponse(answer=answer or 'I do not have enough information to answer that yet.', sources=source_models)
 
