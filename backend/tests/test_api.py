@@ -71,7 +71,7 @@ def test_health_endpoint(client):
 
 def test_ingest_uploads_file(client):
     http, stub = client
-    files = {'files': ('guides.txt', b'JamAI testing guide', 'text/plain')}
+    files = {'files': ('guides.txt', b'AI testing guide', 'text/plain')}
     response = http.post('/ingest', files=files, data={'tenant_id': 'acme', 'tags': 'docs,testing'})
     assert response.status_code == 200
     body = response.json()
@@ -86,7 +86,7 @@ def test_ingest_uploads_file(client):
 def test_chat_returns_answer_and_sources(client):
     http, stub = client
     payload = {
-        'query': 'What is JamAI?',
+        'query': 'What is AI?',
         'top_k': 3,
         'tenant_id': 'acme',
         'tags': ['docs'],
@@ -98,4 +98,4 @@ def test_chat_returns_answer_and_sources(client):
     assert body['answer'].startswith('Stub answer')
     assert len(body['sources']) == 1
     assert body['sources'][0]['source'] == 'doc.txt'
-    assert stub.retrieve_args == ('What is JamAI?', 3, 'acme', ['docs'])
+    assert stub.retrieve_args == ('What is AI?', 3, 'acme', ['docs'])

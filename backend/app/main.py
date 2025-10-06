@@ -13,7 +13,7 @@ from .settings import Settings, get_settings
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title='JamAI RAG API', version='1.0.0')
+app = FastAPI(title='AI RAG API', version='1.0.0')
 
 
 def _cors_list(origins: str) -> List[str]:

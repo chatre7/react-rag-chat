@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     max_context_chars: int = Field(4000, env='MAX_CONTEXT_CHARS')
 
     system_prompt: str = Field(
-        'You are JamAI, a calm assistant who answers using the provided context. '
+        'You are AI, a calm assistant who answers using the provided context. '
         'Decline when the answer is not in the context. Cite sources when possible.',
         env='SYSTEM_PROMPT',
     )

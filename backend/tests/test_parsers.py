@@ -6,9 +6,9 @@ from app import parsers
 
 
 def test_extract_text_from_txt():
-    data = 'JamAI elevates RAG.'.encode('utf-8')
+    data = 'AI elevates RAG.'.encode('utf-8')
     result = parsers.extract_text('note.txt', data)
-    assert result == 'JamAI elevates RAG.'
+    assert result == 'AI elevates RAG.'
 
 
 def test_extract_text_from_csv():

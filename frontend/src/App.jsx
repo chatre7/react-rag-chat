@@ -7,7 +7,7 @@ export default function App() {
     <div className="min-h-screen">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-12 px-6 py-12 md:px-10">
         <header className="flex flex-col gap-4 text-slate-100">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300/80">JamAI workspace</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300/80">AI workspace</p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
             Knowledge console for grounded AI conversations
           </h1>
@@ -39,7 +39,7 @@ export default function App() {
               </h2>
             </div>
             <p className="text-sm text-slate-300">
-              Ask JamAI questions grounded by your uploaded documents. Responses include supporting citations and relevance scores.
+              Ask AI questions grounded by your uploaded documents. Responses include supporting citations and relevance scores.
             </p>
             <ChatBox />
           </section>

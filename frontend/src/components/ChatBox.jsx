@@ -90,7 +90,7 @@ export default function ChatBox() {
           className={`md:flex-1 ${inputClasses}`}
         />
         <button type="submit" className={`${primaryButtonClasses} md:self-start`} disabled={busy}>
-          {busy ? 'Thinking...' : 'Ask JamAI'}
+          {busy ? 'Thinking...' : 'Ask AI'}
         </button>
       </div>
 

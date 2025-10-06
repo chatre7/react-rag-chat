@@ -1,4 +1,4 @@
-# JamAI RAG Chatbot
+# AI RAG Chatbot
 
 A retrieval-augmented generation (RAG) stack powered by FastAPI, Qdrant, Ollama, and a React front-end. Upload knowledge files, index them into a vector store, and chat with grounded answers plus citations.
 
@@ -31,7 +31,7 @@ A retrieval-augmented generation (RAG) stack powered by FastAPI, Qdrant, Ollama,
 ## Usage
 
 1. Upload supported documents (`.txt`, `.md`, `.pdf`, `.docx`, `.csv`, `.xlsx`) through the Knowledge Ingestion panel. Optional tenant IDs and tags scope the ingestion footprint.
-2. Ask questions in the contextual chat module. JamAI replies with answers grounded in the indexed corpus and lists source excerpts with relevance scores.
+2. Ask questions in the contextual chat module. AI replies with answers grounded in the indexed corpus and lists source excerpts with relevance scores.
 3. Debug retrieval quality using the `/debug/search` endpoint when tuning chunking or metadata strategies.
 
 ## Testing & Development
