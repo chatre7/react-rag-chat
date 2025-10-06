@@ -100,101 +100,88 @@ export default function FileDrop() {
   const pendingFileNames = pendingFiles ? Array.from(pendingFiles).map((file) => file.name) : []
 
   const dropZoneClass = [
-    'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-cyan-400/30 bg-slate-900/40 px-6 py-12 text-center transition focus-within:outline-none focus-within:ring-2 focus-within:ring-cyan-400/50',
-    dragActive ? 'border-cyan-300 bg-cyan-500/10 ring-2 ring-cyan-400/50' : 'hover:border-cyan-300/60 hover:bg-slate-900/60',
+    'flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-200',
+    dragActive ? 'border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200' : 'hover:border-indigo-400 hover:bg-white',
   ].join(' ')
 
   return (
-    <div
-      className="space-y-6 rounded-2xl border border-slate-700/40 bg-slate-900/60 p-8 shadow-2xl shadow-slate-950/40 backdrop-blur-xl"
-      aria-live="polite"
-    >
+    <div className='space-y-6'>
       <div
         className={dropZoneClass}
         onDragEnter={onDrag}
         onDragOver={onDrag}
         onDragLeave={onDrag}
         onDrop={onDrop}
-        role="group"
-        aria-label="Document ingestion dropzone"
+        role='group'
+        aria-label='Document ingestion dropzone'
       >
-        <label htmlFor="file-upload" className="flex cursor-pointer flex-col items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full bg-cyan-400/15 px-3 py-1 text-sm font-medium text-cyan-200">
-            Drop files
-          </span>
-          <h3 className="text-lg font-semibold text-slate-100">or click to browse</h3>
-          <p className="text-sm text-slate-300">We&apos;ll index everything client-side before sending.</p>
+        <label htmlFor='file-upload' className='flex cursor-pointer flex-col items-center gap-2 text-slate-600'>
+          <span className='inline-flex items-center gap-2 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-600'>Drop files</span>
+          <h3 className='text-lg font-semibold text-slate-800'>or click to browse</h3>
+          <p className='text-sm text-slate-500'>Files are securely processed before upload.</p>
         </label>
         <input
           ref={inputRef}
-          id="file-upload"
-          type="file"
+          id='file-upload'
+          type='file'
           multiple
           accept={ACCEPTED_TYPES.join(',')}
           onChange={onChange}
-          className="hidden"
-          aria-describedby="file-drop-help"
+          className='hidden'
+          aria-describedby='file-drop-help'
         />
-        <p id="file-drop-help" className="text-xs text-slate-400">
-          Supported formats: {ACCEPTED_TYPES.join(', ')}
-        </p>
+        <p id='file-drop-help' className='text-xs text-slate-400'>Supported formats: {ACCEPTED_TYPES.join(', ')}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="tenant-id" className="text-xs font-semibold uppercase tracking-wide text-slate-300">
-            Tenant ID (optional)
-          </label>
+      <div className='grid gap-4 md:grid-cols-2'>
+        <div className='space-y-2'>
+          <label htmlFor='tenant-id' className='text-xs font-semibold uppercase tracking-wide text-slate-500'>Tenant ID (optional)</label>
           <input
-            id="tenant-id"
-            type="text"
-            className="w-full rounded-xl border border-slate-700/60 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder-slate-400 transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+            id='tenant-id'
+            type='text'
+            className='w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200'
             value={tenantId}
             onChange={(event) => setTenantId(event.target.value)}
-            placeholder="acme-co"
+            placeholder='acme-co'
           />
         </div>
-        <div className="space-y-2">
-          <label htmlFor="tags" className="text-xs font-semibold uppercase tracking-wide text-slate-300">
-            Tags (comma separated)
-          </label>
+        <div className='space-y-2'>
+          <label htmlFor='tags' className='text-xs font-semibold uppercase tracking-wide text-slate-500'>Tags (comma separated)</label>
           <input
-            id="tags"
-            type="text"
-            className="w-full rounded-xl border border-slate-700/60 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder-slate-400 transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+            id='tags'
+            type='text'
+            className='w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200'
             value={tags}
             onChange={(event) => setTags(event.target.value)}
-            placeholder="sales, playbooks"
+            placeholder='sales, playbooks'
           />
         </div>
       </div>
 
       {pendingFiles && (
-        <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-6">
-          <div className="flex items-center justify-between">
-            <h4 className="text-base font-semibold text-slate-100">Confirm upload</h4>
-            <span className="inline-flex items-center gap-2 rounded-full bg-cyan-400/15 px-3 py-1 text-sm font-medium text-cyan-200">
-              {pendingFiles.length} file(s)
-            </span>
+        <div className='space-y-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-5'>
+          <div className='flex items-center justify-between'>
+            <h4 className='text-base font-semibold text-slate-900'>Confirm upload</h4>
+            <span className='inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-600'>{pendingFiles.length} file(s)</span>
           </div>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-200">
+          <ul className='list-disc space-y-1 pl-5 text-sm text-slate-600'>
             {pendingFileNames.map((name) => (
               <li key={name}>{name}</li>
             ))}
           </ul>
-          <div className="flex flex-wrap gap-3">
+          <div className='flex flex-wrap gap-3'>
             <button
-              type="button"
+              type='button'
               onClick={acceptPendingFiles}
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-400 to-indigo-500 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-sky-500/30 transition hover:-translate-y-0.5 hover:shadow-sky-500/40 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              className='inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300'
               disabled={busy}
             >
               {busy ? 'Indexing...' : 'Process files'}
             </button>
             <button
-              type="button"
+              type='button'
               onClick={cancelPendingFiles}
-              className="inline-flex items-center justify-center rounded-full border border-slate-600/60 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-400/80 disabled:cursor-not-allowed disabled:opacity-60"
+              className='inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400'
               disabled={busy}
             >
               Cancel
@@ -207,18 +194,18 @@ export default function FileDrop() {
         <div
           className={
             feedback.type === 'error'
-              ? 'rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100'
-              : 'rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100'
+              ? 'rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700'
+              : 'rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700'
           }
-          role="status"
+          role='status'
         >
-          <p className="text-sm font-medium">{feedback.message}</p>
+          <p className='text-sm font-medium'>{feedback.message}</p>
           {feedback.skipped && Object.keys(feedback.skipped).length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs">
+            <ul className='mt-3 space-y-1 text-xs text-slate-500'>
               {Object.entries(feedback.skipped).map(([filename, reason]) => (
-                <li key={filename} className="flex items-start gap-2">
-                  <span className="font-semibold text-slate-100">{filename}</span>
-                  <span className="text-slate-200/80">{reason}</span>
+                <li key={filename} className='flex items-start gap-2'>
+                  <span className='font-semibold text-slate-700'>{filename}</span>
+                  <span>{reason}</span>
                 </li>
               ))}
             </ul>

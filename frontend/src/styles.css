@@ -4,6 +4,6 @@
 
 @layer base {
   body {
-    @apply min-h-screen bg-slate-950 bg-[radial-gradient(circle_at_top,_#1e293b_0%,_#0f172a_55%,_#020617_100%)] text-slate-100 font-sans antialiased;
+    @apply min-h-screen bg-slate-100 text-slate-900 font-sans antialiased;
   }
 }
