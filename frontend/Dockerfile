@@ -3,7 +3,7 @@ FROM node:20-slim
 
 WORKDIR /app
 
-COPY package.json vite.config.js ./
+COPY package.json package-lock.json vite.config.js tailwind.config.js postcss.config.js ./
 COPY index.html ./
 COPY public ./public
 COPY src ./src
